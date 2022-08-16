@@ -27,16 +27,24 @@ class Spotify:
 
     def __init__(self):
         tokens = self.get_stored_tokens()
+        print(tokens)
         if tokens:
             self.access_token = tokens['access_token']
 
     @staticmethod
     def get_stored_tokens():
+        print(SPOTIFY_ACCESS_TOKEN_JSON)
+        print([f for f in os.listdir(ROOT_DIR)])
+        print([f for f in os.listdir(os.path.join(ROOT_DIR, 'app'))])
+        with open(SPOTIFY_ACCESS_TOKEN_JSON, 'r') as f:
+            tokens = json.load(f)
+            print(tokens)
+
         try:
             with open(SPOTIFY_ACCESS_TOKEN_JSON, 'r+') as f:
                 tokens = json.load(f)
-        except (FileNotFoundError, JSONDecodeError):
-            # SPOTIFY_ACCESS_TOKEN_JSON file has no value, we will later add one
+        except (FileNotFoundError, JSONDecodeError) as e:
+            print(e)
             tokens = {}
         return tokens
 
