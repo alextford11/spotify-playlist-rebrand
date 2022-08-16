@@ -9,7 +9,7 @@ from definitions import IMAGES_DIR, ROOT_DIR
 
 SPOTIFY_AUTH_URL = 'https://accounts.spotify.com/'
 SPOTIFY_API_URL = 'https://api.spotify.com/v1/'
-SPOTIFY_ACCESS_TOKEN_JSON = os.path.join(ROOT_DIR, 'spotify-tokens.json')
+SPOTIFY_ACCESS_TOKEN_JSON = os.path.join(ROOT_DIR, 'app/spotify-tokens.json')
 PLAYLISTS = {
     '4iTlYwQTzZ6vm6H0laLFgz': {
         'name': 'SUPER KISSTORY',
