@@ -33,6 +33,9 @@ class Spotify:
 
     @staticmethod
     def get_stored_tokens():
+        with open(SPOTIFY_ACCESS_TOKEN_JSON, 'w+') as f:
+            json.dump({}, f)
+
         print(SPOTIFY_ACCESS_TOKEN_JSON)
         print([f for f in os.listdir(ROOT_DIR)])
         with open(SPOTIFY_ACCESS_TOKEN_JSON, 'r+') as f:
