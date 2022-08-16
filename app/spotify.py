@@ -27,31 +27,21 @@ class Spotify:
 
     def __init__(self):
         tokens = self.get_stored_tokens()
-        print(tokens)
         if tokens:
             self.access_token = tokens['access_token']
 
     @staticmethod
     def get_stored_tokens():
-        with open(SPOTIFY_ACCESS_TOKEN_JSON, 'w+') as f:
-            json.dump({}, f)
-
-        print(SPOTIFY_ACCESS_TOKEN_JSON)
-        print([f for f in os.listdir(ROOT_DIR)])
-        with open(SPOTIFY_ACCESS_TOKEN_JSON, 'r+') as f:
-            tokens = json.load(f)
-            print(tokens)
-
         try:
             with open(SPOTIFY_ACCESS_TOKEN_JSON, 'r+') as f:
                 tokens = json.load(f)
-        except (FileNotFoundError, JSONDecodeError) as e:
-            print(e)
+        except (FileNotFoundError, JSONDecodeError):
             tokens = {}
         return tokens
 
     def store_tokens(self, tokens):
         self.access_token = tokens['access_token']
+        print(tokens)
         with open(SPOTIFY_ACCESS_TOKEN_JSON, 'w+') as f:
             json.dump(tokens, f)
 
@@ -63,6 +53,7 @@ class Spotify:
         r = requests.post(SPOTIFY_AUTH_URL + 'api/token', data=data, headers=headers)
         assert r.status_code == 200, r.json()
 
+        print(r.json())
         self.store_tokens(r.json())
 
     def refresh_tokens(self):
