@@ -1,15 +1,15 @@
 import base64
 import json
 import os.path
-from json import JSONDecodeError
 
 import requests
 
-from app.definitions import ROOT_DIR, IMAGES_DIR
+from app import get_redis_client
+from app.definitions import IMAGES_DIR
 
 SPOTIFY_AUTH_URL = 'https://accounts.spotify.com/'
 SPOTIFY_API_URL = 'https://api.spotify.com/v1/'
-SPOTIFY_ACCESS_TOKEN_JSON = os.path.join(ROOT_DIR, 'spotify-tokens.json')
+SPOTIFY_TOKENS_KEY = 'spotify-tokens-key'
 PLAYLISTS = {
     '4iTlYwQTzZ6vm6H0laLFgz': {
         'name': 'SUPER KISSTORY',
@@ -20,6 +20,7 @@ PLAYLISTS = {
         'image': 'kisstory-logo.jpg',
     }
 }
+redis_cli = get_redis_client()
 
 
 class Spotify:
@@ -32,18 +33,12 @@ class Spotify:
 
     @staticmethod
     def get_stored_tokens():
-        try:
-            with open(SPOTIFY_ACCESS_TOKEN_JSON, 'r+') as f:
-                tokens = json.load(f)
-        except (FileNotFoundError, JSONDecodeError):
-            tokens = {}
-        return tokens
+        tokens_str = redis_cli.get(SPOTIFY_TOKENS_KEY)
+        return json.loads(tokens_str) if tokens_str else {}
 
     def store_tokens(self, tokens):
         self.access_token = tokens['access_token']
-        print(tokens)
-        with open(SPOTIFY_ACCESS_TOKEN_JSON, 'w+') as f:
-            json.dump(tokens, f)
+        redis_cli.set(SPOTIFY_TOKENS_KEY, json.dumps(tokens))
 
     def request_and_store_tokens(self, code):
         data = {'grant_type': 'authorization_code', 'code': code, 'redirect_uri': os.getenv('SPOTIFY_REDIRECT_URI')}
@@ -53,7 +48,6 @@ class Spotify:
         r = requests.post(SPOTIFY_AUTH_URL + 'api/token', data=data, headers=headers)
         assert r.status_code == 200, r.json()
 
-        print(r.json())
         self.store_tokens(r.json())
 
     def refresh_tokens(self):
