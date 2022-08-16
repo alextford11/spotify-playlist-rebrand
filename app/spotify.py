@@ -10,6 +10,8 @@ from app.definitions import IMAGES_DIR
 SPOTIFY_AUTH_URL = 'https://accounts.spotify.com/'
 SPOTIFY_API_URL = 'https://api.spotify.com/v1/'
 SPOTIFY_TOKENS_KEY = 'spotify-tokens-key'
+AUTH_TOKEN = f'{os.getenv("SPOTIFY_CLIENT_ID")}:{os.getenv("SPOTIFY_CLIENT_SECRET")}'
+B64_AUTH_STR = base64.urlsafe_b64encode(AUTH_TOKEN.encode()).decode()
 PLAYLISTS = {
     '4iTlYwQTzZ6vm6H0laLFgz': {
         'name': 'SUPER KISSTORY',
@@ -42,29 +44,34 @@ class Spotify:
 
     def request_and_store_tokens(self, code):
         data = {'grant_type': 'authorization_code', 'code': code, 'redirect_uri': os.getenv('SPOTIFY_REDIRECT_URI')}
-        auth_token = f'{os.getenv("SPOTIFY_CLIENT_ID")}:{os.getenv("SPOTIFY_CLIENT_SECRET")}'
-        b64_auth_str = base64.urlsafe_b64encode(auth_token.encode()).decode()
-        headers = {'Authorization': f'Basic {b64_auth_str}', 'Content-Type': 'application/x-www-form-urlencoded'}
+        headers = {'Authorization': f'Basic {B64_AUTH_STR}', 'Content-Type': 'application/x-www-form-urlencoded'}
         r = requests.post(SPOTIFY_AUTH_URL + 'api/token', data=data, headers=headers)
         assert r.status_code == 200, r.json()
 
         self.store_tokens(r.json())
 
-    def refresh_tokens(self):
+    def refresh_and_store_tokens(self):
         tokens = self.get_stored_tokens()
-        refresh_token = tokens['refresh_token']
-        self.request_and_store_tokens(refresh_token)
+        data = {'grant_type': 'refresh_token', 'refresh_token': tokens['refresh_token']}
+        headers = {'Authorization': f'Basic {B64_AUTH_STR}', 'Content-Type': 'application/x-www-form-urlencoded'}
+        r = requests.post(SPOTIFY_AUTH_URL + 'api/token', data=data, headers=headers)
+        assert r.status_code == 200, r.json()
+
+        tokens.update(r.json())  # refresh token stays the same, but could be new so we just update here
+        self.store_tokens(tokens)
 
     def _request(self, endpoint, method='get', _json=None, data=None, content_type='application/json', count=1):
         url = SPOTIFY_API_URL + endpoint
-        method = getattr(requests, method)
+        _method = getattr(requests, method)
         headers = {'Authorization': 'Bearer ' + self.access_token, 'Content-Type': content_type}
-        r = method(url, json=_json, data=data, headers=headers)
-        if r.status_code == 401:
+        r = _method(url, json=_json, data=data, headers=headers)
+        if count == 1 or r.status_code == 401:
             if count == 5:
                 raise RuntimeError(r.status_code, r.json())
-            self.refresh_tokens()
-            return self._request(endpoint, method, data, content_type, count=count + 1)
+            self.refresh_and_store_tokens()
+            return self._request(
+                endpoint, method=method, _json=_json, data=data, content_type=content_type, count=count + 1
+            )
         return r
 
     def get_playlist(self, playlist_id):
