@@ -5,11 +5,11 @@ from json import JSONDecodeError
 
 import requests
 
-from definitions import IMAGES_DIR, ROOT_DIR
+from app.definitions import ROOT_DIR, IMAGES_DIR
 
 SPOTIFY_AUTH_URL = 'https://accounts.spotify.com/'
 SPOTIFY_API_URL = 'https://api.spotify.com/v1/'
-SPOTIFY_ACCESS_TOKEN_JSON = os.path.join(ROOT_DIR, 'app/spotify-tokens.json')
+SPOTIFY_ACCESS_TOKEN_JSON = os.path.join(ROOT_DIR, 'spotify-tokens.json')
 PLAYLISTS = {
     '4iTlYwQTzZ6vm6H0laLFgz': {
         'name': 'SUPER KISSTORY',
@@ -35,8 +35,8 @@ class Spotify:
         try:
             with open(SPOTIFY_ACCESS_TOKEN_JSON, 'r+') as f:
                 tokens = json.load(f)
-        except JSONDecodeError:
-            # SPOTIFY_ACCESS_TOKEN_JSON file doesn't exist yet or has no value, we will later add one
+        except (FileNotFoundError, JSONDecodeError):
+            # SPOTIFY_ACCESS_TOKEN_JSON file has no value, we will later add one
             tokens = {}
         return tokens
 
