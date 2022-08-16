@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# PyCharm
+.idea/*
+
+# spotify-playlist-rebrand
+spotify-tokens.json
