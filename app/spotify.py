@@ -1,4 +1,6 @@
 import base64
+import cgi
+import html
 import json
 import os.path
 from logging import getLogger
@@ -8,6 +10,8 @@ import requests
 from app import get_redis_client
 from app.definitions import IMAGES_DIR
 
+RECENTLY_RUN_KEY = 'SCHEDULER_RECENTLY_RUN'
+RECENTLY_RUN_HOURS = int(os.getenv('RECENTLY_RUN_HOURS', '6'))
 SPOTIFY_AUTH_URL = 'https://accounts.spotify.com/'
 SPOTIFY_API_URL = 'https://api.spotify.com/v1/'
 SPOTIFY_TOKENS_KEY = 'spotify-tokens-key'
@@ -77,7 +81,7 @@ class Spotify:
         return r
 
     def get_playlist(self, playlist_id):
-        r = self._request(f'playlists/{playlist_id}?fields=name')
+        r = self._request(f'playlists/{playlist_id}?fields=name,description')
         data = r.json()
         return data
 
@@ -97,15 +101,16 @@ class Spotify:
         assert r.status_code in [200, 202], r.json()
 
 
-def is_playlist_name_correct(playlist_id):
+def is_playlist_details_correct(playlist_id):
     playlist_details = PLAYLISTS[playlist_id]
     sp = Spotify()
     data = sp.get_playlist(playlist_id)
-    return data.get('name') == playlist_details['name']
+    print(data)
+    return all(html.unescape(data[field]) == playlist_details[field] for field in ['name', 'description'])
 
 
 def was_recently_updated():
-    return bool(redis_cli.get('SCHEDULER_RECENTLY_RUN'))
+    return bool(redis_cli.get(RECENTLY_RUN_KEY))
 
 
 def update_playlist_details(playlist_id):
@@ -118,12 +123,15 @@ def update_playlist_details(playlist_id):
 def scheduler_check_and_execute():
     logger.info('Running scheduler_check_and_execute...')
     for playlist_id in PLAYLISTS:
-        is_name_correct = is_playlist_name_correct(playlist_id)
+        are_details_correct = is_playlist_details_correct(playlist_id)
         recently_updated = was_recently_updated()
         logger.info(
-            'Checking playlist: %s, details: %s, recently updated: %s', playlist_id, is_name_correct, recently_updated
+            'Checking playlist: %s, details: %s, recently updated: %s',
+            playlist_id,
+            are_details_correct,
+            recently_updated,
         )
-        if not is_name_correct or not recently_updated:
+        if not are_details_correct or not recently_updated:
             logger.info('Updating playlist: %s', playlist_id)
             update_playlist_details(playlist_id)
-            redis_cli.set('SCHEDULER_RECENTLY_RUN', 1, 3600 * 12)
+            redis_cli.set(RECENTLY_RUN_KEY, 1, 3600 * int(RECENTLY_RUN_HOURS))
