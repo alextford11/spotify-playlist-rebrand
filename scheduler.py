@@ -1,13 +1,18 @@
+import logging
+
 from apscheduler.schedulers.blocking import BlockingScheduler
 
 from app.spotify import scheduler_check_and_execute
 
-sched = BlockingScheduler()
+scheduler = BlockingScheduler()
+logger = logging.getLogger(__name__)
+logger.info('scheduler.py has been run...')
 
 
-@sched.scheduled_job('interval', minutes=10)
+@scheduler.scheduled_job('interval', minutes=10)
 def timed_job():
+    logger.info('timed_job function was called...')
     scheduler_check_and_execute()
 
 
-sched.start()
+scheduler.start()
