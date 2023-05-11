@@ -1,6 +1,7 @@
 import base64
 import json
 import os.path
+from logging import getLogger
 
 import requests
 
@@ -23,6 +24,7 @@ PLAYLISTS = {
     }
 }
 redis_cli = get_redis_client()
+logger = getLogger(__name__)
 
 
 class Spotify:
@@ -111,11 +113,17 @@ def update_playlist_details(playlist_id):
     sp = Spotify()
     sp.update_playlist_details(playlist_id, {k: v for k, v in playlist_details.items() if k in ('name', 'description')})
     sp.update_playlist_image(playlist_id, playlist_details['image'])
-    return
 
 
 def scheduler_check_and_execute():
+    logger.info('Running scheduler_check_and_execute...')
     for playlist_id in PLAYLISTS:
-        if not is_playlist_name_correct(playlist_id) or not was_recently_updated():
+        is_name_correct = is_playlist_name_correct(playlist_id)
+        recently_updated = was_recently_updated()
+        logger.info(
+            'Checking playlist: %s, details: %s, recently updated: %s', playlist_id, is_name_correct, recently_updated
+        )
+        if not is_name_correct or not recently_updated:
+            logger.info('Updating playlist: %s', playlist_id)
             update_playlist_details(playlist_id)
             redis_cli.set('SCHEDULER_RECENTLY_RUN', 1, 3600 * 12)
