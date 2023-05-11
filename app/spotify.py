@@ -1,5 +1,4 @@
 import base64
-import cgi
 import html
 import json
 import os.path
@@ -105,7 +104,6 @@ def is_playlist_details_correct(playlist_id):
     playlist_details = PLAYLISTS[playlist_id]
     sp = Spotify()
     data = sp.get_playlist(playlist_id)
-    print(data)
     return all(html.unescape(data[field]) == playlist_details[field] for field in ['name', 'description'])
 
 
