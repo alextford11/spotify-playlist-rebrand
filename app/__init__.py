@@ -1,7 +1,12 @@
 import os
+from logging.config import dictConfig
 
 import redis
 from flask import Flask
+
+from app.logging import LogConfig
+
+dictConfig(LogConfig().dict())
 
 
 def create_app():
