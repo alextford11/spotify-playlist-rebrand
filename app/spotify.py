@@ -95,11 +95,15 @@ class Spotify:
         assert r.status_code in [200, 202], r.json()
 
 
-def check_playlist_name_correct(playlist_id):
+def is_playlist_name_correct(playlist_id):
     playlist_details = PLAYLISTS[playlist_id]
     sp = Spotify()
     data = sp.get_playlist(playlist_id)
     return data.get('name') == playlist_details['name']
+
+
+def was_recently_updated():
+    return bool(redis_cli.get('SCHEDULER_RECENTLY_RUN'))
 
 
 def update_playlist_details(playlist_id):
@@ -112,5 +116,6 @@ def update_playlist_details(playlist_id):
 
 def scheduler_check_and_execute():
     for playlist_id in PLAYLISTS:
-        if not check_playlist_name_correct(playlist_id):
+        if not is_playlist_name_correct(playlist_id) or not was_recently_updated():
             update_playlist_details(playlist_id)
+            redis_cli.set('SCHEDULER_RECENTLY_RUN', True, 3600 * 12)
