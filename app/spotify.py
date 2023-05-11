@@ -118,4 +118,4 @@ def scheduler_check_and_execute():
     for playlist_id in PLAYLISTS:
         if not is_playlist_name_correct(playlist_id) or not was_recently_updated():
             update_playlist_details(playlist_id)
-            redis_cli.set('SCHEDULER_RECENTLY_RUN', True, 3600 * 12)
+            redis_cli.set('SCHEDULER_RECENTLY_RUN', 1, 3600 * 12)
